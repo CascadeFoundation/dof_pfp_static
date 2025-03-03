@@ -1,8 +1,6 @@
 # Cascade DOF – PFP Static
 
-This Cascade DOF (Dynamic Object Framework) leverages several DOS to implement a standard for deploying a static PFP collection to Sui.
-
-The DOS below are used:
+This Cascade DOF (Dynamic Object Framework) leverages the DOS below to implement a standard for deploying a static PFP collection to Sui:
 
 * [dos_collection](https://github.com/CascadeFoundation/dos_collection) – Defines collection-level metadata such as creator, name, description, and more.
 * [dos_bucket](https://github.com/CascadeFoundation/dos_bucket) – Defines a bucket for storing Walrus blobs.
