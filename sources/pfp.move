@@ -67,11 +67,11 @@ public struct ObjectReceivedFromPfpEvent has copy, drop {
 
 //=== Constants ===
 
-const COLLECTION_NAME: vector<u8> = b"Prime Machin";
-const COLLECTION_DESCRIPTION: vector<u8> = b"Prime Machin is a collection of 100 robots.";
-const COLLECTION_EXTERNAL_URL: vector<u8> = b"https://sm.xyz/collections/machin/prime/";
-const COLLECTION_IMAGE_URI: vector<u8> = b"";
-const COLLECTION_TOTAL_SUPPLY: u64 = 100;
+const COLLECTION_NAME: vector<u8> = b"<COLLECTION_NAME>";
+const COLLECTION_DESCRIPTION: vector<u8> = b"<COLLECTION_DESCRIPTION>";
+const COLLECTION_EXTERNAL_URL: vector<u8> = b"<COLLECTION_EXTERNAL_URL>";
+const COLLECTION_IMAGE_URI: vector<u8> = b"<COLLECTION_IMAGE_URI>";
+const COLLECTION_TOTAL_SUPPLY: u64 = 0;
 
 //=== Errors ===
 
@@ -186,12 +186,14 @@ public fun reveal(
     image: Image,
 ) {
     let image_uri = base64::encode(bcs::to_bytes(&image.blob().blob_id()));
+
     let provenance_hash = calculate_provenance_hash(
         self.number,
         attribute_keys,
         attribute_values,
         image_uri,
     );
+
     assert!(self.provenance_hash == provenance_hash, EProvenanceHashMismatch);
 
     emit(PfpRevealedEvent {
@@ -212,25 +214,19 @@ public(package) fun calculate_provenance_hash(
     mut attribute_values: vector<Attribute>,
     image_uri: String,
 ): String {
-    // Reverse the order of the attribute keys and values so we can use pop_back().
-    attribute_keys.reverse();
-    attribute_values.reverse();
-
     // Initialize input string for hashing.
-    let mut input = b"";
-    input.append(bcs::to_bytes(&number));
+    let mut input = b"".to_string();
+    input.append(number.to_string());
 
     // Concatenate the attribute keys and values.
-    while (!attribute_keys.is_empty()) {
-        input.append(attribute_keys.pop_back().into_bytes());
-        input.append(attribute_values.pop_back().value().into_bytes());
-    };
+    attribute_keys.do!(|v| input.append(v));
+    attribute_values.do!(|v| input.append(v.value()));
 
     // Concatenate the image URI.
-    input.append(image_uri.into_bytes());
+    input.append(image_uri);
 
     // Calculate the hash, and return hex string representation.
-    hex::encode(blake2b256(&input)).to_string()
+    hex::encode(blake2b256(input.as_bytes())).to_string()
 }
 
 //=== View Functions ===
