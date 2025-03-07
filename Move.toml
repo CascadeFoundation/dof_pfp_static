@@ -7,6 +7,7 @@ authors = ["Cascade Foundation (dos@cascade.foundation)"]
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/mainnet", override = true }
 Codec = { git = "https://github.com/sui-potatoes/app.git", subdir = "packages/codec", rev = "main" }
+DosAttribute = { git = "https://github.com/CascadeFoundation/dos_attribute.git", rev = "main" }
 DosCollection = { git = "https://github.com/CascadeFoundation/dos_collection.git", rev = "main" }
 DosImage = { git = "https://github.com/CascadeFoundation/dos_image.git", rev = "main" }
 DosSilo = { git = "https://github.com/CascadeFoundation/dos_silo.git", rev = "main" }

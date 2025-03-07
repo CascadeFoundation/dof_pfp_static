@@ -1,8 +1,9 @@
 module dof_pfp_static::pfp;
 
 use codec::base64;
-use dos_bucket::bucket::{Self, BucketAdminCap};
-use dos_collection::collection::{Self, CollectionAdminCap};
+use dos_attribute::attribute::Attribute;
+use dos_bucket::bucket;
+use dos_collection::collection::{Self, Collection, CollectionAdminCap};
 use dos_image::image::Image;
 use dos_silo::silo::{Self, Silo};
 use std::string::String;
@@ -10,7 +11,7 @@ use sui::bcs;
 use sui::display;
 use sui::hash::blake2b256;
 use sui::hex;
-use sui::package::{Self, Publisher};
+use sui::package;
 use sui::transfer::Receiving;
 use sui::url;
 use sui::vec_map::{Self, VecMap};
@@ -27,7 +28,7 @@ public struct Pfp has key, store {
     description: String,
     image: Option<Image>,
     image_uri: String,
-    attributes: VecMap<String, String>,
+    attributes: VecMap<String, Attribute>,
     provenance_hash: String,
 }
 
@@ -35,9 +36,18 @@ public struct InitializeCollectionCap has key, store {
     id: UID,
 }
 
+//=== Constants ===
+
+const COLLECTION_NAME: vector<u8> = b"Prime Machin";
+const COLLECTION_DESCRIPTION: vector<u8> = b"Prime Machin is a collection of 100 robots.";
+const COLLECTION_EXTERNAL_URL: vector<u8> = b"https://sm.xyz/collections/machin/prime/";
+const COLLECTION_IMAGE_URI: vector<u8> = b"";
+const COLLECTION_TOTAL_SUPPLY: u64 = 100;
+
 //=== Errors ===
 
 const EProvenanceHashMismatch: u64 = 0;
+const ECollectionSupplyReached: u64 = 1;
 
 //=== Init Function ===
 
@@ -52,58 +62,48 @@ fun init(otw: PFP, ctx: &mut TxContext) {
     display.add(b"image_uri".to_string(), b"{image_uri}".to_string());
     display.add(b"attributes".to_string(), b"{attributes}".to_string());
 
-    transfer::public_transfer(display, ctx.sender());
-    transfer::public_transfer(publisher, ctx.sender());
-}
-
-//=== Public Function ===
-
-public fun initialize(
-    cap: InitializeCollectionCap,
-    publisher: &Publisher,
-    collection_name: String,
-    collection_description: String,
-    collection_external_url: String,
-    collection_image_uri: String,
-    collection_total_supply: u64,
-    ctx: &mut TxContext,
-): (BucketAdminCap, CollectionAdminCap<Pfp>) {
-    // Create a Collection object for the PFP collection.
     let (collection, collection_admin_cap) = collection::new<Pfp>(
-        publisher,
-        collection_name,
+        &publisher,
+        COLLECTION_NAME.to_string(),
         @creator,
-        collection_description,
-        url::new_unsafe_from_bytes(collection_external_url.into_bytes()),
-        collection_image_uri,
-        collection_total_supply,
+        COLLECTION_DESCRIPTION.to_string(),
+        url::new_unsafe_from_bytes(COLLECTION_EXTERNAL_URL),
+        COLLECTION_IMAGE_URI.to_string(),
+        COLLECTION_TOTAL_SUPPLY,
         ctx,
     );
 
     // Create a Silo object for the PFP collection.
-    let silo = silo::new<Pfp>(collection_total_supply, ctx);
+    let (silo, silo_admin_cap) = silo::new<Pfp>(COLLECTION_TOTAL_SUPPLY, ctx);
 
     // Create a Bucket object for the PFP collection.
     let (bucket, bucket_admin_cap) = bucket::new(ctx);
 
+    transfer::public_transfer(display, ctx.sender());
+    transfer::public_transfer(publisher, ctx.sender());
+    transfer::public_transfer(bucket_admin_cap, ctx.sender());
+    transfer::public_transfer(collection_admin_cap, ctx.sender());
+    transfer::public_transfer(silo_admin_cap, ctx.sender());
+
     transfer::public_share_object(bucket);
     transfer::public_share_object(silo);
+
     transfer::public_freeze_object(collection);
-
-    let InitializeCollectionCap { id } = cap;
-    id.delete();
-
-    (bucket_admin_cap, collection_admin_cap)
 }
+
+//=== Public Function ===
 
 public fun new(
     cap: &CollectionAdminCap<Pfp>,
     name: String,
     description: String,
     provenance_hash: String,
+    collection: &Collection<Pfp>,
     silo: &mut Silo<Pfp>,
     ctx: &mut TxContext,
 ): Pfp {
+    assert!(silo.size() < collection.supply(), ECollectionSupplyReached);
+
     Pfp {
         id: object::new(ctx),
         collection_id: cap.collection_id(),
@@ -123,8 +123,9 @@ public fun receive<T: key + store>(self: &mut Pfp, obj_to_receive: Receiving<T>)
 
 public fun reveal(
     self: &mut Pfp,
+    _: &CollectionAdminCap<Pfp>,
     attribute_keys: vector<String>,
-    attribute_values: vector<String>,
+    attribute_values: vector<Attribute>,
     image: Image,
 ) {
     let image_uri = base64::encode(bcs::to_bytes(&image.blob().blob_id()));
@@ -140,7 +141,7 @@ public fun reveal(
 
 public(package) fun calculate_provenance_hash(
     mut attribute_keys: vector<String>,
-    mut attribute_values: vector<String>,
+    mut attribute_values: vector<Attribute>,
     image_uri: String,
 ): String {
     // Reverse the order of the attribute keys and values so we can use pop_back().
@@ -151,7 +152,7 @@ public(package) fun calculate_provenance_hash(
     let mut input = b"".to_string();
     while (!attribute_keys.is_empty()) {
         input.append(attribute_keys.pop_back());
-        input.append(attribute_values.pop_back());
+        input.append(attribute_values.pop_back().value());
     };
 
     // Concatenate the image URI.
