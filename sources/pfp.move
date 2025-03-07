@@ -2,11 +2,11 @@ module dof_pfp_static::pfp;
 
 use codec::base64;
 use dof_pfp_static::registry::Registry;
-use dos_attribute::attribute::Attribute;
+use dos_attribute::attribute::{Self, Attribute};
 use dos_bucket::bucket;
 use dos_collection::collection::{Self, Collection, CollectionAdminCap};
 use dos_image::image::Image;
-use dos_silo::silo::{Self, Silo};
+use dos_silo::silo;
 use std::string::String;
 use sui::bcs;
 use sui::display;
@@ -279,4 +279,41 @@ fun test_blob_id_u256_to_b64() {
         26318712447309950621133794408605739963587829295802287350894110878892617743117;
     let encoded = base64::encode(bcs::to_bytes(&blob_id));
     assert!(encoded == b"DbuJ7GRmwjoqo1LDp2qk/H/aI1ycOi2lH3Ka4ATdLzo=".to_string());
+}
+
+#[test]
+fun test_calculate_provenance_hash() {
+    let number = 100;
+    let attribute_keys: vector<String> = vector[
+        b"aura".to_string(),
+        b"background".to_string(),
+        b"clothing".to_string(),
+        b"decal".to_string(),
+        b"headwear".to_string(),
+        b"highlight".to_string(),
+        b"internals".to_string(),
+        b"mask".to_string(),
+        b"screen".to_string(),
+        b"skin".to_string(),
+    ];
+    let attribute_values: vector<Attribute> = vector[
+        attribute::new(b"aura".to_string(), b"none".to_string()),
+        attribute::new(b"background".to_string(), b"green".to_string()),
+        attribute::new(b"clothing".to_string(), b"none".to_string()),
+        attribute::new(b"decal".to_string(), b"none".to_string()),
+        attribute::new(b"headwear".to_string(), b"classic-antenna".to_string()),
+        attribute::new(b"highlight".to_string(), b"green".to_string()),
+        attribute::new(b"internals".to_string(), b"gray".to_string()),
+        attribute::new(b"mask".to_string(), b"hyottoko".to_string()),
+        attribute::new(b"screen".to_string(), b"tamashi-eyes".to_string()),
+        attribute::new(b"skin".to_string(), b"silver".to_string()),
+    ];
+    let image_uri = b"MvcX8hU5esyvO1M8NRCrleSQjS9YaH57YBedKIUpYn8".to_string();
+    let provenance_hash = calculate_provenance_hash(
+        number,
+        attribute_keys,
+        attribute_values,
+        image_uri,
+    );
+    std::debug::print(&provenance_hash);
 }
