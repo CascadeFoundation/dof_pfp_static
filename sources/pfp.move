@@ -54,6 +54,17 @@ public struct PfpCreatedEvent has copy, drop {
     pfp_provenance_hash: String,
 }
 
+public struct PfpRevealedEvent has copy, drop {
+    collection_id: ID,
+    pfp_id: ID,
+}
+
+public struct ObjectReceivedFromPfpEvent has copy, drop {
+    collection_id: ID,
+    pfp_id: ID,
+    object_id: ID,
+}
+
 //=== Constants ===
 
 const COLLECTION_NAME: vector<u8> = b"Prime Machin";
@@ -143,8 +154,6 @@ public fun new(
         provenance_hash: provenance_hash,
     };
 
-    registry.add_pfp(pfp.number, pfp.id());
-
     emit(PfpCreatedEvent {
         collection_id: object::id(collection),
         pfp_id: object::id(&pfp),
@@ -152,11 +161,21 @@ public fun new(
         pfp_provenance_hash: pfp.provenance_hash,
     });
 
+    registry.add_pfp(pfp.number, pfp.id());
+
     pfp
 }
 
 public fun receive<T: key + store>(self: &mut Pfp, obj_to_receive: Receiving<T>): T {
-    transfer::public_receive(&mut self.id, obj_to_receive)
+    let obj = transfer::public_receive(&mut self.id, obj_to_receive);
+
+    emit(ObjectReceivedFromPfpEvent {
+        collection_id: self.collection_id,
+        pfp_id: self.id(),
+        object_id: object::id(&obj),
+    });
+
+    obj
 }
 
 public fun reveal(
@@ -174,6 +193,11 @@ public fun reveal(
         image_uri,
     );
     assert!(self.provenance_hash == provenance_hash, EProvenanceHashMismatch);
+
+    emit(PfpRevealedEvent {
+        collection_id: self.collection_id,
+        pfp_id: self.id(),
+    });
 
     self.attributes = vec_map::from_keys_values(attribute_keys, attribute_values);
     self.image_uri = image_uri;
