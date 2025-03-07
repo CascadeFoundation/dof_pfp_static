@@ -143,6 +143,8 @@ public fun new(
         provenance_hash: provenance_hash,
     };
 
+    registry.add_pfp(pfp.number, pfp.id());
+
     emit(PfpCreatedEvent {
         collection_id: object::id(collection),
         pfp_id: object::id(&pfp),
@@ -205,6 +207,44 @@ public(package) fun calculate_provenance_hash(
 
     // Calculate the hash, and return hex string representation.
     hex::encode(blake2b256(&input)).to_string()
+}
+
+//=== View Functions ===
+
+public fun id(self: &Pfp): ID {
+    self.id.to_inner()
+}
+
+public fun collection_id(self: &Pfp): ID {
+    self.collection_id
+}
+
+public fun name(self: &Pfp): String {
+    self.name
+}
+
+public fun number(self: &Pfp): u64 {
+    self.number
+}
+
+public fun description(self: &Pfp): String {
+    self.description
+}
+
+public fun image(self: &Pfp): &Option<Image> {
+    &self.image
+}
+
+public fun image_uri(self: &Pfp): String {
+    self.image_uri
+}
+
+public fun attributes(self: &Pfp): VecMap<String, Attribute> {
+    self.attributes
+}
+
+public fun provenance_hash(self: &Pfp): String {
+    self.provenance_hash
 }
 
 //=== Test Functions ===

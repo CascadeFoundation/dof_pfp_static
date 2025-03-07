@@ -2,6 +2,8 @@ module dof_pfp_static::registry;
 
 use sui::table::{Self, Table};
 
+//=== Structs ===
+
 public struct REGISTRY has drop {}
 
 public struct Registry has key {
@@ -15,7 +17,11 @@ public enum RegistryState has copy, drop, store {
     INITIALIZED,
 }
 
+//=== Errors ===
+
 const ERegistryAlreadyInitialized: u64 = 0;
+
+//=== Init Function ===
 
 fun init(_otw: REGISTRY, ctx: &mut TxContext) {
     let registry = Registry {
@@ -26,6 +32,14 @@ fun init(_otw: REGISTRY, ctx: &mut TxContext) {
 
     transfer::share_object(registry);
 }
+
+//=== Public Functions ===
+
+public fun pfp_id_from_number(self: &Registry, pfp_number: u64): ID {
+    *self.pfps.borrow(pfp_number)
+}
+
+//=== Package Functions ===
 
 public(package) fun add_pfp(self: &mut Registry, pfp_number: u64, pfp_id: ID) {
     match (&mut self.state) {
