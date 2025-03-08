@@ -1,7 +1,7 @@
-module dof_pfp_static::pfp;
+module prime_machin::prime_machin;
 
 use codec::base64;
-use dof_pfp_static::registry::Registry;
+use prime_machin::registry::Registry;
 use dos_attribute::attribute::{Self, Attribute};
 use dos_bucket::bucket;
 use dos_collection::collection::{Self, Collection, CollectionAdminCap};
@@ -20,7 +20,7 @@ use sui::vec_map::{Self, VecMap};
 
 //=== Structs ===
 
-public struct PFP has drop {}
+public struct PRIME_MACHIN has drop {}
 
 public struct Pfp has key, store {
     id: UID,
@@ -38,6 +38,15 @@ public struct InitializeCollectionCap has key, store {
     id: UID,
 }
 
+public struct DofStaticPfpDeployedEvent has copy, drop {
+    collection_id: ID,
+    collection_admin_cap_id: ID,
+    bucket_id: ID,
+    bucket_admin_cap_id: ID,
+    silo_id: ID,
+    silo_admin_cap_id: ID,
+}
+
 public struct PfpCreatedEvent has copy, drop {
     collection_id: ID,
     pfp_id: ID,
@@ -50,13 +59,19 @@ public struct PfpRevealedEvent has copy, drop {
     pfp_id: ID,
 }
 
+public struct ObjectReceivedFromPfpEvent has copy, drop {
+    collection_id: ID,
+    pfp_id: ID,
+    object_id: ID,
+}
+
 //=== Constants ===
 
-const COLLECTION_NAME: vector<u8> = b"<COLLECTION_NAME>";
-const COLLECTION_DESCRIPTION: vector<u8> = b"<COLLECTION_DESCRIPTION>";
-const COLLECTION_EXTERNAL_URL: vector<u8> = b"<COLLECTION_EXTERNAL_URL>";
-const COLLECTION_IMAGE_URI: vector<u8> = b"<COLLECTION_IMAGE_URI>";
-const COLLECTION_TOTAL_SUPPLY: u64 = 0;
+const COLLECTION_NAME: vector<u8> = b"Prime Machin";
+const COLLECTION_DESCRIPTION: vector<u8> = b"Prime Machin is a collection of 100 robots manufactured by the Triangle Company.";
+const COLLECTION_EXTERNAL_URL: vector<u8> = b"https://nozomi.world/collections/machin/prime/";
+const COLLECTION_IMAGE_URI: vector<u8> = b"MvcX8hU5esyvO1M8NRCrleSQjS9YaH57YBedKIUpYn8";
+const COLLECTION_TOTAL_SUPPLY: u64 = 100;
 
 //=== Errors ===
 
@@ -65,7 +80,7 @@ const ECollectionSupplyReached: u64 = 1;
 
 //=== Init Function ===
 
-fun init(otw: PFP, ctx: &mut TxContext) {
+fun init(otw: PRIME_MACHIN, ctx: &mut TxContext) {
     let publisher = package::claim(otw, ctx);
 
     let mut display = display::new<Pfp>(&publisher, ctx);
@@ -87,9 +102,29 @@ fun init(otw: PFP, ctx: &mut TxContext) {
         ctx,
     );
 
+    // Create a Silo object for the PRIME_MACHIN collection.
+    let (silo, silo_admin_cap) = silo::new<Pfp>(COLLECTION_TOTAL_SUPPLY, ctx);
+
+    // Create a Bucket object for the PRIME_MACHIN collection.
+    let (bucket, bucket_admin_cap) = bucket::new(ctx);
+
+    emit(DofStaticPfpDeployedEvent {
+        collection_id: object::id(&collection),
+        collection_admin_cap_id: object::id(&collection_admin_cap),
+        bucket_id: object::id(&bucket),
+        bucket_admin_cap_id: object::id(&bucket_admin_cap),
+        silo_id: object::id(&silo),
+        silo_admin_cap_id: object::id(&silo_admin_cap),
+    });
+
     transfer::public_transfer(display, ctx.sender());
     transfer::public_transfer(publisher, ctx.sender());
+    transfer::public_transfer(bucket_admin_cap, ctx.sender());
     transfer::public_transfer(collection_admin_cap, ctx.sender());
+    transfer::public_transfer(silo_admin_cap, ctx.sender());
+
+    transfer::public_share_object(bucket);
+    transfer::public_share_object(silo);
 
     transfer::public_freeze_object(collection);
 }
@@ -132,7 +167,15 @@ public fun new(
 }
 
 public fun receive<T: key + store>(self: &mut Pfp, obj_to_receive: Receiving<T>): T {
-    transfer::public_receive(&mut self.id, obj_to_receive)
+    let obj = transfer::public_receive(&mut self.id, obj_to_receive);
+
+    emit(ObjectReceivedFromPfpEvent {
+        collection_id: self.collection_id,
+        pfp_id: self.id(),
+        object_id: object::id(&obj),
+    });
+
+    obj
 }
 
 public fun reveal(

@@ -2,13 +2,14 @@
 
 [move]
 version = 3
-manifest_digest = "FBA7F722747B3948DBE054FC96AE1EF61E9F27434B119D7C43D5DA8A1FE88F24"
-deps_digest = "52B406A7A21811BEF51751CF88DA0E76DAEFFEAC888D4F4060B1A72BBE7D8D35"
+manifest_digest = "88426AC6FDFFD428C011096B8E591396A097225CB673AF1EAF5B23F70A907CFE"
+deps_digest = "CAFAD8A7CF51067FB4358215BECB86BD100DD64E57C2AC8A7AE7D74B688F5965"
 dependencies = [
   { id = "Codec", name = "Codec" },
   { id = "DosAttribute", name = "DosAttribute" },
   { id = "DosCollection", name = "DosCollection" },
   { id = "DosImage", name = "DosImage" },
+  { id = "DosPfpStatic", name = "DosPfpStatic" },
   { id = "DosSilo", name = "DosSilo" },
   { id = "Sui", name = "Sui" },
 ]
@@ -53,6 +54,17 @@ source = { git = "https://github.com/CascadeFoundation/dos_image.git", rev = "ma
 
 dependencies = [
   { id = "DosBucket", name = "DosBucket" },
+  { id = "Sui", name = "Sui" },
+]
+
+[[move.package]]
+id = "DosPfpStatic"
+source = { git = "https://github.com/CascadeFoundation/dos_pfp_static.git", rev = "main", subdir = "" }
+
+dependencies = [
+  { id = "DosAttribute", name = "DosAttribute" },
+  { id = "DosCollection", name = "DosCollection" },
+  { id = "DosImage", name = "DosImage" },
   { id = "Sui", name = "Sui" },
 ]
 
@@ -112,6 +124,6 @@ flavor = "sui"
 
 [env.testnet]
 chain-id = "4c78adac"
-original-published-id = "0xb566294369201ab439420902a01b0370121ebc3760240bfe4c867681295973ac"
-latest-published-id = "0xb566294369201ab439420902a01b0370121ebc3760240bfe4c867681295973ac"
+original-published-id = "0x76f933af83c082117ecb2f9d446a5161b83e706f3d36f8684510cac43326a1cb"
+latest-published-id = "0x76f933af83c082117ecb2f9d446a5161b83e706f3d36f8684510cac43326a1cb"
 published-version = "1"
