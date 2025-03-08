@@ -5,7 +5,6 @@ use dos_attribute::attribute::Attribute;
 use dos_bucket::bucket;
 use dos_collection::collection::{Self, CollectionAdminCap};
 use dos_image::image::Image;
-use dos_registry::registry;
 use std::string::String;
 use sui::bcs;
 use sui::display;
@@ -102,18 +101,13 @@ fun init(otw: PFP, ctx: &mut TxContext) {
 
     let (bucket, bucket_admin_cap) = bucket::new(ctx);
 
-    let registry_kind = registry::new_capped_kind(COLLECTION_TOTAL_SUPPLY);
-    let (registry, registry_admin_cap) = registry::new<PfpType, u64>(registry_kind, ctx);
-
     transfer::public_transfer(bucket_admin_cap, ctx.sender());
     transfer::public_transfer(create_pfp_cap, ctx.sender());
     transfer::public_transfer(display, ctx.sender());
     transfer::public_transfer(publisher, ctx.sender());
     transfer::public_transfer(collection_admin_cap, ctx.sender());
-    transfer::public_transfer(registry_admin_cap, ctx.sender());
 
     transfer::public_share_object(bucket);
-    transfer::public_share_object(registry);
 
     transfer::public_freeze_object(collection);
 }
@@ -268,16 +262,16 @@ fun test_calculate_provenance_hash() {
         b"skin".to_string(),
     ];
     let attribute_values: vector<Attribute> = vector[
-        attribute::new(b"aura".to_string(), b"none".to_string()),
-        attribute::new(b"background".to_string(), b"green".to_string()),
-        attribute::new(b"clothing".to_string(), b"none".to_string()),
-        attribute::new(b"decal".to_string(), b"none".to_string()),
-        attribute::new(b"headwear".to_string(), b"classic-antenna".to_string()),
-        attribute::new(b"highlight".to_string(), b"green".to_string()),
-        attribute::new(b"internals".to_string(), b"gray".to_string()),
-        attribute::new(b"mask".to_string(), b"hyottoko".to_string()),
-        attribute::new(b"screen".to_string(), b"tamashi-eyes".to_string()),
-        attribute::new(b"skin".to_string(), b"silver".to_string()),
+        dos_attribute::attribute::new(b"aura".to_string(), b"none".to_string()),
+        dos_attribute::attribute::new(b"background".to_string(), b"green".to_string()),
+        dos_attribute::attribute::new(b"clothing".to_string(), b"none".to_string()),
+        dos_attribute::attribute::new(b"decal".to_string(), b"none".to_string()),
+        dos_attribute::attribute::new(b"headwear".to_string(), b"classic-antenna".to_string()),
+        dos_attribute::attribute::new(b"highlight".to_string(), b"green".to_string()),
+        dos_attribute::attribute::new(b"internals".to_string(), b"gray".to_string()),
+        dos_attribute::attribute::new(b"mask".to_string(), b"hyottoko".to_string()),
+        dos_attribute::attribute::new(b"screen".to_string(), b"tamashi-eyes".to_string()),
+        dos_attribute::attribute::new(b"skin".to_string(), b"silver".to_string()),
     ];
     let image_uri = b"MvcX8hU5esyvO1M8NRCrleSQjS9YaH57YBedKIUpYn8".to_string();
     let provenance_hash = calculate_provenance_hash(
