@@ -1,10 +1,11 @@
 module dof_pfp_static::pfp;
 
 use codec::base64;
-use dof_pfp_static::registry::Registry;
 use dos_attribute::attribute::{Self, Attribute};
-use dos_collection::collection::{Self, Collection, CollectionAdminCap};
+use dos_bucket::bucket;
+use dos_collection::collection::{Self, CollectionAdminCap};
 use dos_image::image::Image;
+use dos_registry::registry;
 use std::string::String;
 use sui::bcs;
 use sui::display;
@@ -28,8 +29,15 @@ public struct PfpType has key, store {
     description: String,
     image: Option<Image>,
     image_uri: String,
-    attributes: VecMap<String, Attribute>,
     provenance_hash: String,
+    attributes: VecMap<String, Attribute>,
+}
+
+public struct CreatePfpCap has key, store {
+    id: UID,
+    collection_id: ID,
+    created_count: u64,
+    target_count: u64,
 }
 
 public struct InitializeCollectionCap has key, store {
@@ -85,9 +93,27 @@ fun init(otw: PFP, ctx: &mut TxContext) {
         ctx,
     );
 
+    let create_pfp_cap = CreatePfpCap {
+        id: object::new(ctx),
+        collection_id: object::id(&collection),
+        created_count: 0,
+        target_count: COLLECTION_TOTAL_SUPPLY,
+    };
+
+    let (bucket, bucket_admin_cap) = bucket::new(ctx);
+
+    let registry_kind = registry::new_capped_kind(COLLECTION_TOTAL_SUPPLY);
+    let (registry, registry_admin_cap) = registry::new<PfpType, u64>(registry_kind, ctx);
+
+    transfer::public_transfer(bucket_admin_cap, ctx.sender());
+    transfer::public_transfer(create_pfp_cap, ctx.sender());
     transfer::public_transfer(display, ctx.sender());
     transfer::public_transfer(publisher, ctx.sender());
     transfer::public_transfer(collection_admin_cap, ctx.sender());
+    transfer::public_transfer(registry_admin_cap, ctx.sender());
+
+    transfer::public_share_object(bucket);
+    transfer::public_share_object(registry);
 
     transfer::public_freeze_object(collection);
 }
@@ -95,36 +121,34 @@ fun init(otw: PFP, ctx: &mut TxContext) {
 //=== Public Function ===
 
 public fun new(
-    cap: &CollectionAdminCap<PfpType>,
+    cap: &mut CreatePfpCap,
     name: String,
     description: String,
     provenance_hash: String,
-    collection: &Collection<PfpType>,
-    registry: &mut Registry,
     ctx: &mut TxContext,
 ): PfpType {
-    assert!(registry.size() < collection.supply(), ECollectionSupplyReached);
+    assert!(cap.created_count < cap.target_count, ECollectionSupplyReached);
 
     let pfp = PfpType {
         id: object::new(ctx),
-        collection_id: cap.collection_id(),
+        collection_id: cap.collection_id,
         name: name,
-        number: registry.size() + 1,
+        number: cap.created_count + 1,
         description: description,
         image: option::none(),
         image_uri: b"".to_string(),
-        attributes: vec_map::empty(),
         provenance_hash: provenance_hash,
+        attributes: vec_map::empty(),
     };
 
+    cap.created_count = cap.created_count + 1;
+
     emit(PfpCreatedEvent {
-        collection_id: object::id(collection),
+        collection_id: cap.collection_id,
         pfp_id: object::id(&pfp),
         pfp_number: pfp.number,
         pfp_provenance_hash: pfp.provenance_hash,
     });
-
-    registry.add_pfp(pfp.number, pfp.id());
 
     pfp
 }
@@ -153,7 +177,7 @@ public fun reveal(
 
     emit(PfpRevealedEvent {
         collection_id: self.collection_id,
-        pfp_id: self.id(),
+        pfp_id: self.id.to_inner(),
     });
 
     self.attributes = vec_map::from_keys_values(attribute_keys, attribute_values);
@@ -185,10 +209,6 @@ public(package) fun calculate_provenance_hash(
 }
 
 //=== View Functions ===
-
-public fun id(self: &PfpType): ID {
-    self.id.to_inner()
-}
 
 public fun collection_id(self: &PfpType): ID {
     self.collection_id
