@@ -1,7 +1,7 @@
 module dof_pfp_static::pfp;
 
 use codec::base64;
-use dos_attribute::attribute::{Self, Attribute};
+use dos_attribute::attribute::Attribute;
 use dos_bucket::bucket;
 use dos_collection::collection::{Self, CollectionAdminCap};
 use dos_image::image::Image;
@@ -189,8 +189,8 @@ public fun reveal(
 
 public(package) fun calculate_provenance_hash(
     number: u64,
-    mut attribute_keys: vector<String>,
-    mut attribute_values: vector<Attribute>,
+    attribute_keys: vector<String>,
+    attribute_values: vector<Attribute>,
     image_uri: String,
 ): String {
     // Initialize input string for hashing.

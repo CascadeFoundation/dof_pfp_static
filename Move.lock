@@ -2,11 +2,12 @@
 
 [move]
 version = 3
-manifest_digest = "3B9DCDE3A8E4B1F504E3D32ECF94829DAE84BF5D96B6941FB61E396D2678043F"
-deps_digest = "52B406A7A21811BEF51751CF88DA0E76DAEFFEAC888D4F4060B1A72BBE7D8D35"
+manifest_digest = "FB91B753CDE6B195ECF50528014CEDC90120527C760FEF25AAF63560AA06AE59"
+deps_digest = "CAFAD8A7CF51067FB4358215BECB86BD100DD64E57C2AC8A7AE7D74B688F5965"
 dependencies = [
   { id = "Codec", name = "Codec" },
   { id = "DosAttribute", name = "DosAttribute" },
+  { id = "DosBucket", name = "DosBucket" },
   { id = "DosCollection", name = "DosCollection" },
   { id = "DosImage", name = "DosImage" },
   { id = "DosRegistry", name = "DosRegistry" },
