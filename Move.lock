@@ -2,15 +2,14 @@
 
 [move]
 version = 3
-manifest_digest = "FB91B753CDE6B195ECF50528014CEDC90120527C760FEF25AAF63560AA06AE59"
-deps_digest = "CAFAD8A7CF51067FB4358215BECB86BD100DD64E57C2AC8A7AE7D74B688F5965"
+manifest_digest = "5C0700E022AA95BB9DC66177B490585D8E1F16C0C7F1B23677462861A3E993E7"
+deps_digest = "52B406A7A21811BEF51751CF88DA0E76DAEFFEAC888D4F4060B1A72BBE7D8D35"
 dependencies = [
   { id = "Codec", name = "Codec" },
   { id = "DosAttribute", name = "DosAttribute" },
   { id = "DosBucket", name = "DosBucket" },
   { id = "DosCollection", name = "DosCollection" },
   { id = "DosImage", name = "DosImage" },
-  { id = "DosRegistry", name = "DosRegistry" },
   { id = "Sui", name = "Sui" },
 ]
 
@@ -54,14 +53,6 @@ source = { git = "https://github.com/CascadeFoundation/dos_image.git", rev = "ma
 
 dependencies = [
   { id = "DosBucket", name = "DosBucket" },
-  { id = "Sui", name = "Sui" },
-]
-
-[[move.package]]
-id = "DosRegistry"
-source = { git = "https://github.com/CascadeFoundation/dos_registry.git", rev = "main", subdir = "" }
-
-dependencies = [
   { id = "Sui", name = "Sui" },
 ]
 
