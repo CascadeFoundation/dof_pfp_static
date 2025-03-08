@@ -3,10 +3,8 @@ module dof_pfp_static::pfp;
 use codec::base64;
 use dof_pfp_static::registry::Registry;
 use dos_attribute::attribute::{Self, Attribute};
-use dos_bucket::bucket;
 use dos_collection::collection::{Self, Collection, CollectionAdminCap};
 use dos_image::image::Image;
-use dos_silo::silo;
 use std::string::String;
 use sui::bcs;
 use sui::display;
@@ -22,7 +20,7 @@ use sui::vec_map::{Self, VecMap};
 
 public struct PFP has drop {}
 
-public struct Pfp has key, store {
+public struct PfpType has key, store {
     id: UID,
     collection_id: ID,
     name: String,
@@ -68,7 +66,7 @@ const ECollectionSupplyReached: u64 = 1;
 fun init(otw: PFP, ctx: &mut TxContext) {
     let publisher = package::claim(otw, ctx);
 
-    let mut display = display::new<Pfp>(&publisher, ctx);
+    let mut display = display::new<PfpType>(&publisher, ctx);
     display.add(b"collection_id".to_string(), b"{collection_id}".to_string());
     display.add(b"name".to_string(), b"{name}".to_string());
     display.add(b"number".to_string(), b"{number}".to_string());
@@ -76,7 +74,7 @@ fun init(otw: PFP, ctx: &mut TxContext) {
     display.add(b"image_uri".to_string(), b"{image_uri}".to_string());
     display.add(b"attributes".to_string(), b"{attributes}".to_string());
 
-    let (collection, collection_admin_cap) = collection::new<Pfp>(
+    let (collection, collection_admin_cap) = collection::new<PfpType>(
         &publisher,
         COLLECTION_NAME.to_string(),
         @creator,
@@ -97,17 +95,17 @@ fun init(otw: PFP, ctx: &mut TxContext) {
 //=== Public Function ===
 
 public fun new(
-    cap: &CollectionAdminCap<Pfp>,
+    cap: &CollectionAdminCap<PfpType>,
     name: String,
     description: String,
     provenance_hash: String,
-    collection: &Collection<Pfp>,
+    collection: &Collection<PfpType>,
     registry: &mut Registry,
     ctx: &mut TxContext,
-): Pfp {
+): PfpType {
     assert!(registry.size() < collection.supply(), ECollectionSupplyReached);
 
-    let pfp = Pfp {
+    let pfp = PfpType {
         id: object::new(ctx),
         collection_id: cap.collection_id(),
         name: name,
@@ -131,13 +129,13 @@ public fun new(
     pfp
 }
 
-public fun receive<T: key + store>(self: &mut Pfp, obj_to_receive: Receiving<T>): T {
+public fun receive<T: key + store>(self: &mut PfpType, obj_to_receive: Receiving<T>): T {
     transfer::public_receive(&mut self.id, obj_to_receive)
 }
 
 public fun reveal(
-    self: &mut Pfp,
-    _: &CollectionAdminCap<Pfp>,
+    self: &mut PfpType,
+    _: &CollectionAdminCap<PfpType>,
     attribute_keys: vector<String>,
     attribute_values: vector<Attribute>,
     image: Image,
@@ -188,39 +186,39 @@ public(package) fun calculate_provenance_hash(
 
 //=== View Functions ===
 
-public fun id(self: &Pfp): ID {
+public fun id(self: &PfpType): ID {
     self.id.to_inner()
 }
 
-public fun collection_id(self: &Pfp): ID {
+public fun collection_id(self: &PfpType): ID {
     self.collection_id
 }
 
-public fun name(self: &Pfp): String {
+public fun name(self: &PfpType): String {
     self.name
 }
 
-public fun number(self: &Pfp): u64 {
+public fun number(self: &PfpType): u64 {
     self.number
 }
 
-public fun description(self: &Pfp): String {
+public fun description(self: &PfpType): String {
     self.description
 }
 
-public fun image(self: &Pfp): &Option<Image> {
+public fun image(self: &PfpType): &Option<Image> {
     &self.image
 }
 
-public fun image_uri(self: &Pfp): String {
+public fun image_uri(self: &PfpType): String {
     self.image_uri
 }
 
-public fun attributes(self: &Pfp): VecMap<String, Attribute> {
+public fun attributes(self: &PfpType): VecMap<String, Attribute> {
     self.attributes
 }
 
-public fun provenance_hash(self: &Pfp): String {
+public fun provenance_hash(self: &PfpType): String {
     self.provenance_hash
 }
 
