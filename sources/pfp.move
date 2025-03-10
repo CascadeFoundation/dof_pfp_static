@@ -128,6 +128,8 @@ fun init(otw: PFP, ctx: &mut TxContext) {
 
 //=== Public Function ===
 
+const EInvalidDataLength: u64 = 0;
+
 public fun new(
     cap: &mut CreatePfpCap,
     name: String,
@@ -158,6 +160,52 @@ public fun new(
     });
 
     pfp
+}
+
+public fun new_bulk(
+    cap: &mut CreatePfpCap,
+    names: vector<String>,
+    descriptions: vector<String>,
+    provenance_hashes: vector<String>,
+    ctx: &mut TxContext,
+): vector<PfpType> {
+    assert!(names.length() == descriptions.length(), EInvalidDataLength);
+    assert!(names.length() == provenance_hashes.length(), EInvalidDataLength);
+
+    assert!(cap.created_count < cap.target_count + names.length(), ECollectionSupplyReached);
+
+    let mut pfps = vector[];
+
+    let collection_id = cap.collection_id;
+    let start_number = cap.created_count + 1;
+    let end_number = start_number + names.length();
+
+    let mut number = start_number;
+    while (number < end_number) {
+        let pfp = internal_new(
+            collection_id,
+            names.pop_back(),
+            number,
+            descriptions.pop_back(),
+            provenance_hashes.pop_back(),
+            ctx,
+        );
+
+        emit(PfpCreatedEvent {
+            collection_id: collection_id,
+            pfp_id: object::id(&pfp),
+            pfp_number: pfp.number,
+            pfp_provenance_hash: pfp.provenance_hash,
+        });
+
+        pfps.push_back(pfp);
+
+        number = number + 1;
+    };
+
+    cap.created_count = cap.created_count + names.length();
+
+    pfps
 }
 
 public fun receive<T: key + store>(self: &mut PfpType, obj_to_receive: Receiving<T>): T {
@@ -254,6 +302,28 @@ public fun attributes(self: &PfpType): VecMap<String, Attribute> {
 
 public fun provenance_hash(self: &PfpType): String {
     self.provenance_hash
+}
+
+//=== Private Functions ===
+
+fun internal_new(
+    collection_id: ID,
+    name: String,
+    number: u64,
+    description: String,
+    provenance_hash: String,
+    ctx: &mut TxContext,
+): PfpType {
+    PfpType {
+        id: object::new(ctx),
+        collection_id: collection_id,
+        name: name,
+        number: number,
+        description: description,
+        image_uri: b"".to_string(),
+        provenance_hash: provenance_hash,
+        attributes: vec_map::empty(),
+    }
 }
 
 //=== Test Functions ===
