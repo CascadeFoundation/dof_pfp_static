@@ -1,12 +1,10 @@
 module dof_pfp_static::pfp;
 
-use codec::base64;
 use dos_attribute::attribute::Attribute;
 use dos_bucket::bucket;
 use dos_collection::collection;
 use dos_silo::silo;
 use std::string::String;
-use sui::bcs;
 use sui::display;
 use sui::event::emit;
 use sui::hash::blake2b256;
@@ -164,9 +162,9 @@ public fun new(
 
 public fun new_bulk(
     cap: &mut CreatePfpCap,
-    names: vector<String>,
-    descriptions: vector<String>,
-    provenance_hashes: vector<String>,
+    mut names: vector<String>,
+    mut descriptions: vector<String>,
+    mut provenance_hashes: vector<String>,
     ctx: &mut TxContext,
 ): vector<PfpType> {
     assert!(names.length() == descriptions.length(), EInvalidDataLength);
@@ -330,6 +328,8 @@ fun internal_new(
 
 #[test]
 fun test_blob_id_u256_to_b64() {
+    use codec::base64;
+    use sui::bcs;
     let blob_id: u256 =
         26318712447309950621133794408605739963587829295802287350894110878892617743117;
     let encoded = base64::encode(bcs::to_bytes(&blob_id));
