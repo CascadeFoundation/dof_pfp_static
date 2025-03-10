@@ -3,8 +3,8 @@ module dof_pfp_static::pfp;
 use codec::base64;
 use dos_attribute::attribute::Attribute;
 use dos_bucket::bucket;
-use dos_collection::collection::{Self, CollectionAdminCap};
-use dos_image::image::Image;
+use dos_collection::collection;
+use dos_silo::silo;
 use std::string::String;
 use sui::bcs;
 use sui::display;
@@ -26,7 +26,6 @@ public struct PfpType has key, store {
     name: String,
     number: u64,
     description: String,
-    image: Option<Image>,
     image_uri: String,
     provenance_hash: String,
     attributes: VecMap<String, Attribute>,
@@ -39,8 +38,11 @@ public struct CreatePfpCap has key, store {
     target_count: u64,
 }
 
-public struct InitializeCollectionCap has key, store {
+public struct RevealPfpCap has key, store {
     id: UID,
+    collection_id: ID,
+    revealed_count: u64,
+    target_count: u64,
 }
 
 public struct PfpCreatedEvent has copy, drop {
@@ -67,6 +69,7 @@ const COLLECTION_TOTAL_SUPPLY: u64 = 0;
 
 const EProvenanceHashMismatch: u64 = 0;
 const ECollectionSupplyReached: u64 = 1;
+const ERevealTargetCountNotReached: u64 = 2;
 
 //=== Init Function ===
 
@@ -99,15 +102,26 @@ fun init(otw: PFP, ctx: &mut TxContext) {
         target_count: COLLECTION_TOTAL_SUPPLY,
     };
 
+    let reveal_pfp_cap = RevealPfpCap {
+        id: object::new(ctx),
+        collection_id: object::id(&collection),
+        revealed_count: 0,
+        target_count: COLLECTION_TOTAL_SUPPLY,
+    };
+
     let (bucket, bucket_admin_cap) = bucket::new(ctx);
+    let (silo, silo_admin_cap) = silo::new<PfpType>(COLLECTION_TOTAL_SUPPLY, ctx);
 
     transfer::public_transfer(bucket_admin_cap, ctx.sender());
+    transfer::public_transfer(collection_admin_cap, ctx.sender());
     transfer::public_transfer(create_pfp_cap, ctx.sender());
     transfer::public_transfer(display, ctx.sender());
     transfer::public_transfer(publisher, ctx.sender());
-    transfer::public_transfer(collection_admin_cap, ctx.sender());
+    transfer::public_transfer(reveal_pfp_cap, ctx.sender());
+    transfer::public_transfer(silo_admin_cap, ctx.sender());
 
     transfer::public_share_object(bucket);
+    transfer::public_share_object(silo);
 
     transfer::public_freeze_object(collection);
 }
@@ -129,7 +143,6 @@ public fun new(
         name: name,
         number: cap.created_count + 1,
         description: description,
-        image: option::none(),
         image_uri: b"".to_string(),
         provenance_hash: provenance_hash,
         attributes: vec_map::empty(),
@@ -153,13 +166,11 @@ public fun receive<T: key + store>(self: &mut PfpType, obj_to_receive: Receiving
 
 public fun reveal(
     self: &mut PfpType,
-    _: &CollectionAdminCap<PfpType>,
+    cap: &mut RevealPfpCap,
     attribute_keys: vector<String>,
     attribute_values: vector<Attribute>,
-    image: Image,
+    image_uri: String,
 ) {
-    let image_uri = base64::encode(bcs::to_bytes(&image.blob().blob_id()));
-
     let provenance_hash = calculate_provenance_hash(
         self.number,
         attribute_keys,
@@ -176,7 +187,20 @@ public fun reveal(
 
     self.attributes = vec_map::from_keys_values(attribute_keys, attribute_values);
     self.image_uri = image_uri;
-    self.image.fill(image);
+
+    cap.revealed_count = cap.revealed_count + 1;
+}
+
+public fun create_pfp_cap_destroy(cap: CreatePfpCap) {
+    assert!(cap.created_count == cap.target_count, ECollectionSupplyReached);
+    let CreatePfpCap { id, .. } = cap;
+    id.delete();
+}
+
+public fun reveal_pfp_cap_destroy(cap: RevealPfpCap) {
+    assert!(cap.revealed_count == cap.target_count, ERevealTargetCountNotReached);
+    let RevealPfpCap { id, .. } = cap;
+    id.delete();
 }
 
 //=== Package Functions ===
@@ -218,10 +242,6 @@ public fun number(self: &PfpType): u64 {
 
 public fun description(self: &PfpType): String {
     self.description
-}
-
-public fun image(self: &PfpType): &Option<Image> {
-    &self.image
 }
 
 public fun image_uri(self: &PfpType): String {

@@ -11,6 +11,7 @@ DosAttribute = { git = "https://github.com/CascadeFoundation/dos_attribute.git",
 DosBucket = { git = "https://github.com/CascadeFoundation/dos_bucket.git", rev = "main" }
 DosCollection = { git = "https://github.com/CascadeFoundation/dos_collection.git", rev = "main" }
 DosImage = { git = "https://github.com/CascadeFoundation/dos_image.git", rev = "main" }
+DosSilo = { git = "https://github.com/CascadeFoundation/dos_silo.git", rev = "main" }
 
 [addresses]
 dof_pfp_static = "0x0"
