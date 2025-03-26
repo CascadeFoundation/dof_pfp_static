@@ -1,9 +1,8 @@
-module dof_pfp_static::pfp;
+module dof_pfp_static::pfp_type;
 
 use dos_attribute::attribute::Attribute;
 use dos_bucket::bucket;
 use dos_collection::collection;
-use dos_silo::silo;
 use std::string::String;
 use sui::display;
 use sui::event::emit;
@@ -16,7 +15,7 @@ use sui::vec_map::{Self, VecMap};
 
 //=== Structs ===
 
-public struct PFP has drop {}
+public struct PFP_TYPE has drop {}
 
 public struct PfpType has key, store {
     id: UID,
@@ -71,7 +70,7 @@ const ERevealTargetCountNotReached: u64 = 2;
 
 //=== Init Function ===
 
-fun init(otw: PFP, ctx: &mut TxContext) {
+fun init(otw: PFP_TYPE, ctx: &mut TxContext) {
     let publisher = package::claim(otw, ctx);
 
     let mut display = display::new<PfpType>(&publisher, ctx);
@@ -82,7 +81,7 @@ fun init(otw: PFP, ctx: &mut TxContext) {
     display.add(b"image_uri".to_string(), b"{image_uri}".to_string());
     display.add(b"attributes".to_string(), b"{attributes}".to_string());
 
-    let (collection, collection_admin_cap) = collection::new<PfpType>(
+    let (collection, collection_admin_cap) = collection::new<PFP_TYPE>(
         &publisher,
         COLLECTION_NAME.to_string(),
         @creator,
@@ -108,7 +107,6 @@ fun init(otw: PFP, ctx: &mut TxContext) {
     };
 
     let (bucket, bucket_admin_cap) = bucket::new(ctx);
-    let (silo, silo_admin_cap) = silo::new<PfpType>(COLLECTION_TOTAL_SUPPLY, ctx);
 
     transfer::public_transfer(bucket_admin_cap, ctx.sender());
     transfer::public_transfer(collection_admin_cap, ctx.sender());
@@ -116,17 +114,13 @@ fun init(otw: PFP, ctx: &mut TxContext) {
     transfer::public_transfer(display, ctx.sender());
     transfer::public_transfer(publisher, ctx.sender());
     transfer::public_transfer(reveal_pfp_cap, ctx.sender());
-    transfer::public_transfer(silo_admin_cap, ctx.sender());
 
     transfer::public_share_object(bucket);
-    transfer::public_share_object(silo);
 
     transfer::public_freeze_object(collection);
 }
 
 //=== Public Function ===
-
-const EInvalidDataLength: u64 = 0;
 
 public fun new(
     cap: &mut CreatePfpCap,
@@ -158,52 +152,6 @@ public fun new(
     });
 
     pfp
-}
-
-public fun new_bulk(
-    cap: &mut CreatePfpCap,
-    mut names: vector<String>,
-    mut descriptions: vector<String>,
-    mut provenance_hashes: vector<String>,
-    ctx: &mut TxContext,
-): vector<PfpType> {
-    assert!(names.length() == descriptions.length(), EInvalidDataLength);
-    assert!(names.length() == provenance_hashes.length(), EInvalidDataLength);
-
-    assert!(cap.created_count < cap.target_count + names.length(), ECollectionSupplyReached);
-
-    let mut pfps = vector[];
-
-    let collection_id = cap.collection_id;
-    let start_number = cap.created_count + 1;
-    let end_number = start_number + names.length();
-
-    let mut number = start_number;
-    while (number < end_number) {
-        let pfp = internal_new(
-            collection_id,
-            names.pop_back(),
-            number,
-            descriptions.pop_back(),
-            provenance_hashes.pop_back(),
-            ctx,
-        );
-
-        emit(PfpCreatedEvent {
-            collection_id: collection_id,
-            pfp_id: object::id(&pfp),
-            pfp_number: pfp.number,
-            pfp_provenance_hash: pfp.provenance_hash,
-        });
-
-        pfps.push_back(pfp);
-
-        number = number + 1;
-    };
-
-    cap.created_count = cap.created_count + names.length();
-
-    pfps
 }
 
 public fun receive<T: key + store>(self: &mut PfpType, obj_to_receive: Receiving<T>): T {
@@ -300,28 +248,6 @@ public fun attributes(self: &PfpType): VecMap<String, Attribute> {
 
 public fun provenance_hash(self: &PfpType): String {
     self.provenance_hash
-}
-
-//=== Private Functions ===
-
-fun internal_new(
-    collection_id: ID,
-    name: String,
-    number: u64,
-    description: String,
-    provenance_hash: String,
-    ctx: &mut TxContext,
-): PfpType {
-    PfpType {
-        id: object::new(ctx),
-        collection_id: collection_id,
-        name: name,
-        number: number,
-        description: description,
-        image_uri: b"".to_string(),
-        provenance_hash: provenance_hash,
-        attributes: vec_map::empty(),
-    }
 }
 
 //=== Test Functions ===
