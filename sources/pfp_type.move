@@ -81,7 +81,7 @@ fun init(otw: PFP_TYPE, ctx: &mut TxContext) {
     display.add(b"image_uri".to_string(), b"{image_uri}".to_string());
     display.add(b"attributes".to_string(), b"{attributes}".to_string());
 
-    let (collection, collection_admin_cap) = collection::new<PFP_TYPE>(
+    let (collection, collection_admin_cap) = collection::new<PfpType>(
         &publisher,
         COLLECTION_NAME.to_string(),
         @creator,
