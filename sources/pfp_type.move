@@ -154,6 +154,41 @@ public fun new(
     pfp
 }
 
+public fun new_revealed(
+    cap: &mut CreatePfpCap,
+    name: String,
+    description: String,
+    provenance_hash: String,
+    attribute_keys: vector<String>,
+    attribute_values: vector<Attribute>,
+    image_uri: String,
+    ctx: &mut TxContext,
+): PfpType {
+    assert!(cap.created_count < cap.target_count, ECollectionSupplyReached);
+
+    let pfp = PfpType {
+        id: object::new(ctx),
+        collection_id: cap.collection_id,
+        name: name,
+        number: cap.created_count + 1,
+        description: description,
+        image_uri: image_uri,
+        provenance_hash: provenance_hash,
+        attributes: vec_map::from_keys_values(attribute_keys, attribute_values),
+    };
+
+    cap.created_count = cap.created_count + 1;
+
+    emit(PfpCreatedEvent {
+        collection_id: cap.collection_id,
+        pfp_id: object::id(&pfp),
+        pfp_number: pfp.number,
+        pfp_provenance_hash: pfp.provenance_hash,
+    });
+
+    pfp
+}
+
 public fun receive<T: key + store>(self: &mut PfpType, obj_to_receive: Receiving<T>): T {
     transfer::public_receive(&mut self.id, obj_to_receive)
 }
