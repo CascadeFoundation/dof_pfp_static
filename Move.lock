@@ -2,15 +2,28 @@
 
 [move]
 version = 3
-manifest_digest = "C7AEFA8DDABE8AA8399DAB24445CF45028CD687A3295ED0CDD7F26E41498B751"
+manifest_digest = "E263A16F5DA145B1E9C87C6121B5090ECED073B1110B9693CFE35B1037A34B65"
 deps_digest = "8227D341C0550A37580C10FA45FE148A465225149C69D179737E0FE454AD6AEC"
 dependencies = [
+  { id = "BlobUtils", name = "BlobUtils" },
   { id = "Bridge", name = "Bridge" },
-  { id = "Codec", name = "Codec" },
   { id = "DeepBook", name = "DeepBook" },
   { id = "DosCollection", name = "DosCollection" },
   { id = "DosHashGatedBucket", name = "DosHashGatedBucket" },
   { id = "DosStaticPfp", name = "DosStaticPfp" },
+  { id = "MoveStdlib", name = "MoveStdlib" },
+  { id = "Sui", name = "Sui" },
+  { id = "SuiSystem", name = "SuiSystem" },
+]
+
+[[move.package]]
+id = "BlobUtils"
+source = { git = "https://github.com/studio-mirai/blob_utils.git", rev = "main", subdir = "" }
+
+dependencies = [
+  { id = "Bridge", name = "Bridge" },
+  { id = "Codec", name = "Codec" },
+  { id = "DeepBook", name = "DeepBook" },
   { id = "MoveStdlib", name = "MoveStdlib" },
   { id = "Sui", name = "Sui" },
   { id = "SuiSystem", name = "SuiSystem" },
@@ -28,7 +41,7 @@ dependencies = [
 
 [[move.package]]
 id = "Codec"
-source = { git = "https://github.com/studio-mirai/potatoes-app.git", rev = "main", subdir = "packages/codec" }
+source = { git = "https://github.com/sui-potatoes/app.git", rev = "main", subdir = "packages/codec" }
 
 dependencies = [
   { id = "Bridge", name = "Bridge" },

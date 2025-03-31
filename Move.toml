@@ -5,9 +5,10 @@ license = "Cascade DOL 1.0"
 authors = ["Cascade Foundation (dos@cascade.foundation)"]
 
 [dependencies]
-Codec = { git = "https://github.com/studio-mirai/potatoes-app.git", subdir = "packages/codec", rev = "main" }
+BlobUtils = { git = "https://github.com/studio-mirai/blob_utils.git", rev = "main" }
 DosCollection = { git = "https://github.com/CascadeFoundation/dos_collection.git", rev = "main" }
 DosHashGatedBucket = { git = "https://github.com/CascadeFoundation/dos_hash_gated_bucket.git", rev = "main" }
+DosRegistry = { git = "https://github.com/CascadeFoundation/dos_registry.git", rev = "main" }
 DosStaticPfp = { git = "https://github.com/CascadeFoundation/dos_static_pfp.git", rev = "main" }
 
 [addresses]
