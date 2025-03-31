@@ -6,11 +6,20 @@ use dos_hash_gated_bucket::hash_gated_bucket::{Self, HashGatedBucket};
 use dos_registry::registry::{Self, Registry, RegistryAdminCap};
 use dos_static_pfp::static_pfp::{Self, StaticPfp};
 use std::string::String;
+use std::type_name::{Self, TypeName};
 use sui::display;
 use sui::package;
 use sui::transfer::Receiving;
-use sui::url;
 use sui::vec_map::VecMap;
+
+//=== Aliases ===
+
+public use fun pfp_name as PfpType.name;
+public use fun pfp_number as PfpType.number;
+public use fun pfp_description as PfpType.description;
+public use fun pfp_image_uri as PfpType.image_uri;
+public use fun pfp_attributes as PfpType.attributes;
+public use fun pfp_provenance_hash as PfpType.provenance_hash;
 
 //=== Structs ===
 
@@ -44,15 +53,16 @@ fun init(otw: PFP_TYPE, ctx: &mut TxContext) {
     display.add(b"name".to_string(), b"{pfp.name}".to_string());
     display.add(b"number".to_string(), b"{pfp.number}".to_string());
     display.add(b"description".to_string(), b"{pfp.description}".to_string());
+    display.add(b"external_url".to_string(), b"{pfp.external_url}".to_string());
     display.add(b"image_uri".to_string(), b"{pfp.image_uri}".to_string());
     display.add(b"attributes".to_string(), b"{pfp.attributes}".to_string());
 
-    let (collection, collection_admin_cap) = collection::new<PfpType>(
+    let (mut collection, collection_admin_cap) = collection::new<PfpType>(
         &publisher,
         COLLECTION_NAME.to_string(),
         @creator,
         COLLECTION_DESCRIPTION.to_string(),
-        url::new_unsafe_from_bytes(COLLECTION_EXTERNAL_URL),
+        COLLECTION_EXTERNAL_URL.to_string(),
         COLLECTION_IMAGE_URI.to_string(),
         COLLECTION_TOTAL_SUPPLY,
         ctx,
@@ -69,14 +79,29 @@ fun init(otw: PFP_TYPE, ctx: &mut TxContext) {
         ctx,
     );
 
-    transfer::public_transfer(collection_admin_cap, ctx.sender());
+    collection.add_metadata<PfpType, TypeName, ID>(
+        &collection_admin_cap,
+        type_name::get<HashGatedBucket>(),
+        object::id(&hash_gated_bucket),
+    );
+
+    collection.add_metadata<PfpType, TypeName, ID>(
+        &collection_admin_cap,
+        type_name::get<Registry<PfpType, u64>>(),
+        object::id(&registry),
+    );
+
     transfer::public_transfer(display, ctx.sender());
     transfer::public_transfer(hash_gated_bucket_admin_cap, ctx.sender());
     transfer::public_transfer(publisher, ctx.sender());
     transfer::public_transfer(registry_admin_cap, ctx.sender());
-    transfer::public_freeze_object(collection);
+
     transfer::public_share_object(hash_gated_bucket);
     transfer::public_share_object(registry);
+
+    transfer::public_freeze_object(collection);
+
+    collection_admin_cap.destroy();
 }
 
 //=== Public Function ===
@@ -135,26 +160,26 @@ public fun collection_id(self: &PfpType): ID {
     self.collection_id
 }
 
-public fun name(self: &PfpType): String {
-    self.pfp.name()
-}
-
-public fun number(self: &PfpType): u64 {
+public fun pfp_number(self: &PfpType): u64 {
     self.pfp.number()
 }
 
-public fun description(self: &PfpType): String {
+public fun pfp_name(self: &PfpType): String {
+    self.pfp.name()
+}
+
+public fun pfp_description(self: &PfpType): String {
     self.pfp.description()
 }
 
-public fun image_uri(self: &PfpType): String {
+public fun pfp_image_uri(self: &PfpType): String {
     self.pfp.image_uri()
 }
 
-public fun attributes(self: &PfpType): VecMap<String, String> {
+public fun pfp_attributes(self: &PfpType): VecMap<String, String> {
     self.pfp.attributes()
 }
 
-public fun provenance_hash(self: &PfpType): String {
+public fun pfp_provenance_hash(self: &PfpType): String {
     self.pfp.provenance_hash()
 }
