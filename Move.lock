@@ -2,14 +2,15 @@
 
 [move]
 version = 3
-manifest_digest = "8DE6FC5D82464CAD52FB7801B8A292EC254001305E0956C8301F48F3B2163135"
-deps_digest = "04732BFEF428F74DE262001DC455D76B909EBC394B034A9A15CC095E4BDD9CEF"
+manifest_digest = "C7AEFA8DDABE8AA8399DAB24445CF45028CD687A3295ED0CDD7F26E41498B751"
+deps_digest = "8227D341C0550A37580C10FA45FE148A465225149C69D179737E0FE454AD6AEC"
 dependencies = [
   { id = "Bridge", name = "Bridge" },
   { id = "Codec", name = "Codec" },
   { id = "DeepBook", name = "DeepBook" },
   { id = "DosCollection", name = "DosCollection" },
   { id = "DosHashGatedBucket", name = "DosHashGatedBucket" },
+  { id = "DosStaticPfp", name = "DosStaticPfp" },
   { id = "MoveStdlib", name = "MoveStdlib" },
   { id = "Sui", name = "Sui" },
   { id = "SuiSystem", name = "SuiSystem" },
@@ -69,6 +70,18 @@ dependencies = [
   { id = "Sui", name = "Sui" },
   { id = "SuiSystem", name = "SuiSystem" },
   { id = "Walrus", name = "Walrus" },
+]
+
+[[move.package]]
+id = "DosStaticPfp"
+source = { git = "https://github.com/CascadeFoundation/dos_static_pfp.git", rev = "main", subdir = "" }
+
+dependencies = [
+  { id = "Bridge", name = "Bridge" },
+  { id = "DeepBook", name = "DeepBook" },
+  { id = "MoveStdlib", name = "MoveStdlib" },
+  { id = "Sui", name = "Sui" },
+  { id = "SuiSystem", name = "SuiSystem" },
 ]
 
 [[move.package]]

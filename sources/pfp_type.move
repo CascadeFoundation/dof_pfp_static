@@ -3,6 +3,7 @@ module dof_pfp_static::pfp_type;
 use codec::base64;
 use dos_collection::collection;
 use dos_hash_gated_bucket::hash_gated_bucket::{Self, HashGatedBucket};
+use dos_static_pfp::static_pfp::{Self, StaticPfp};
 use std::string::String;
 use sui::bcs;
 use sui::display;
@@ -21,12 +22,8 @@ public struct PFP_TYPE has drop {}
 public struct PfpType has key, store {
     id: UID,
     collection_id: ID,
-    name: String,
-    number: u64,
-    description: String,
-    image_uri: String,
+    pfp: StaticPfp,
     provenance_hash: String,
-    attributes: VecMap<String, String>,
 }
 
 public struct CreatePfpCap has key, store {
@@ -142,6 +139,8 @@ public fun new(
     cap: &mut CreatePfpCap,
     name: String,
     description: String,
+    external_url: String,
+    image_uri: String,
     provenance_hash: String,
     ctx: &mut TxContext,
 ): PfpType {
@@ -150,12 +149,8 @@ public fun new(
     let pfp = PfpType {
         id: object::new(ctx),
         collection_id: cap.collection_id,
-        name: name,
-        number: cap.created_count + 1,
-        description: description,
-        image_uri: b"".to_string(),
+        pfp: static_pfp::new(name, cap.created_count + 1, description, external_url, image_uri),
         provenance_hash: provenance_hash,
-        attributes: vec_map::empty(),
     };
 
     cap.created_count = cap.created_count + 1;
@@ -163,7 +158,7 @@ public fun new(
     emit(PfpCreatedEvent {
         collection_id: cap.collection_id,
         pfp_id: object::id(&pfp),
-        pfp_number: pfp.number,
+        pfp_number: pfp.pfp.number(),
         pfp_provenance_hash: pfp.provenance_hash,
     });
 
@@ -174,31 +169,30 @@ public fun new_revealed(
     cap: &mut CreatePfpCap,
     name: String,
     description: String,
-    provenance_hash: String,
+    external_url: String,
+    image_uri: String,
     attribute_keys: vector<String>,
     attribute_values: vector<String>,
-    image_uri: String,
+    provenance_hash: String,
     ctx: &mut TxContext,
 ): PfpType {
     assert!(cap.created_count < cap.target_count, ECollectionSupplyReached);
 
-    let pfp = PfpType {
+    let mut pfp = PfpType {
         id: object::new(ctx),
         collection_id: cap.collection_id,
-        name: name,
-        number: cap.created_count + 1,
-        description: description,
-        image_uri: image_uri,
+        pfp: static_pfp::new(name, cap.created_count + 1, description, external_url, image_uri),
         provenance_hash: provenance_hash,
-        attributes: vec_map::from_keys_values(attribute_keys, attribute_values),
     };
+
+    pfp.pfp.reveal(attribute_keys, attribute_values);
 
     cap.created_count = cap.created_count + 1;
 
     emit(PfpCreatedEvent {
         collection_id: cap.collection_id,
         pfp_id: object::id(&pfp),
-        pfp_number: pfp.number,
+        pfp_number: pfp.pfp.number(),
         pfp_provenance_hash: pfp.provenance_hash,
     });
 
@@ -214,16 +208,15 @@ public fun reveal(
     cap: &mut RevealPfpCap,
     attribute_keys: vector<String>,
     attribute_values: vector<String>,
-    image_uri: String,
     bucket: &HashGatedBucket,
 ) {
-    assert!(bucket.blob_exists(blob_id_b64_to_u256(image_uri)), 0);
+    assert!(bucket.blob_exists(blob_id_b64_to_u256(self.pfp.image_uri())), 0);
 
     let provenance_hash = calculate_provenance_hash(
-        self.number,
+        self.pfp.number(),
         attribute_keys,
         attribute_values,
-        image_uri,
+        self.pfp.image_uri(),
     );
 
     assert!(self.provenance_hash == provenance_hash, EProvenanceHashMismatch);
@@ -233,8 +226,7 @@ public fun reveal(
         pfp_id: self.id.to_inner(),
     });
 
-    self.attributes = vec_map::from_keys_values(attribute_keys, attribute_values);
-    self.image_uri = image_uri;
+    self.pfp.reveal(attribute_keys, attribute_values);
 
     cap.revealed_count = cap.revealed_count + 1;
 }
@@ -281,23 +273,23 @@ public fun collection_id(self: &PfpType): ID {
 }
 
 public fun name(self: &PfpType): String {
-    self.name
+    self.pfp.name()
 }
 
 public fun number(self: &PfpType): u64 {
-    self.number
+    self.pfp.number()
 }
 
 public fun description(self: &PfpType): String {
-    self.description
+    self.pfp.description()
 }
 
 public fun image_uri(self: &PfpType): String {
-    self.image_uri
+    self.pfp.image_uri()
 }
 
 public fun attributes(self: &PfpType): VecMap<String, String> {
-    self.attributes
+    self.pfp.attributes()
 }
 
 public fun provenance_hash(self: &PfpType): String {
