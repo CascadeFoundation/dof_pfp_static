@@ -1,9 +1,10 @@
 module dof_pfp_static::pfp_type;
 
-use dos_attribute::attribute::Attribute;
-use dos_bucket::bucket;
+use codec::base64;
 use dos_collection::collection;
+use dos_hash_gated_bucket::hash_gated_bucket::{Self, HashGatedBucket};
 use std::string::String;
+use sui::bcs;
 use sui::display;
 use sui::event::emit;
 use sui::hash::blake2b256;
@@ -25,7 +26,7 @@ public struct PfpType has key, store {
     description: String,
     image_uri: String,
     provenance_hash: String,
-    attributes: VecMap<String, Attribute>,
+    attributes: VecMap<String, String>,
 }
 
 public struct CreatePfpCap has key, store {
@@ -61,6 +62,9 @@ const COLLECTION_DESCRIPTION: vector<u8> = b"<COLLECTION_DESCRIPTION>";
 const COLLECTION_EXTERNAL_URL: vector<u8> = b"<COLLECTION_EXTERNAL_URL>";
 const COLLECTION_IMAGE_URI: vector<u8> = b"<COLLECTION_IMAGE_URI>";
 const COLLECTION_TOTAL_SUPPLY: u64 = 0;
+
+const HASH_GATED_BUCKET_EXTENSION_EPOCHS: u32 = 2;
+const HASH_GATED_BUCKET_EXTENSION_UNLOCK_WINDOW: u32 = 2;
 
 //=== Errors ===
 
@@ -106,18 +110,21 @@ fun init(otw: PFP_TYPE, ctx: &mut TxContext) {
         target_count: COLLECTION_TOTAL_SUPPLY,
     };
 
-    let (bucket, bucket_admin_cap) = bucket::new(ctx);
+    let (hash_gated_bucket, hash_gated_bucket_admin_cap) = hash_gated_bucket::new(
+        HASH_GATED_BUCKET_EXTENSION_EPOCHS,
+        HASH_GATED_BUCKET_EXTENSION_UNLOCK_WINDOW,
+        ctx,
+    );
 
-    transfer::public_transfer(bucket_admin_cap, ctx.sender());
     transfer::public_transfer(collection_admin_cap, ctx.sender());
     transfer::public_transfer(create_pfp_cap, ctx.sender());
     transfer::public_transfer(display, ctx.sender());
+    transfer::public_transfer(hash_gated_bucket_admin_cap, ctx.sender());
     transfer::public_transfer(publisher, ctx.sender());
     transfer::public_transfer(reveal_pfp_cap, ctx.sender());
 
-    transfer::public_share_object(bucket);
-
     transfer::public_freeze_object(collection);
+    transfer::public_share_object(hash_gated_bucket);
 }
 
 //=== Public Function ===
@@ -160,7 +167,7 @@ public fun new_revealed(
     description: String,
     provenance_hash: String,
     attribute_keys: vector<String>,
-    attribute_values: vector<Attribute>,
+    attribute_values: vector<String>,
     image_uri: String,
     ctx: &mut TxContext,
 ): PfpType {
@@ -197,9 +204,12 @@ public fun reveal(
     self: &mut PfpType,
     cap: &mut RevealPfpCap,
     attribute_keys: vector<String>,
-    attribute_values: vector<Attribute>,
+    attribute_values: vector<String>,
     image_uri: String,
+    bucket: &HashGatedBucket,
 ) {
+    assert!(bucket.blob_exists(blob_id_b64_to_u256(image_uri)), 0);
+
     let provenance_hash = calculate_provenance_hash(
         self.number,
         attribute_keys,
@@ -237,7 +247,7 @@ public fun reveal_pfp_cap_destroy(cap: RevealPfpCap) {
 public(package) fun calculate_provenance_hash(
     number: u64,
     attribute_keys: vector<String>,
-    attribute_values: vector<Attribute>,
+    attribute_values: vector<String>,
     image_uri: String,
 ): String {
     // Initialize input string for hashing.
@@ -246,7 +256,7 @@ public(package) fun calculate_provenance_hash(
 
     // Concatenate the attribute keys and values.
     attribute_keys.do!(|v| input.append(v));
-    attribute_values.do!(|v| input.append(v.value()));
+    attribute_values.do!(|v| input.append(v));
 
     // Concatenate the image URI.
     input.append(image_uri);
@@ -277,12 +287,20 @@ public fun image_uri(self: &PfpType): String {
     self.image_uri
 }
 
-public fun attributes(self: &PfpType): VecMap<String, Attribute> {
+public fun attributes(self: &PfpType): VecMap<String, String> {
     self.attributes
 }
 
 public fun provenance_hash(self: &PfpType): String {
     self.provenance_hash
+}
+
+fun blob_id_u256_to_b64(blob_id: u256): String {
+    base64::encode(bcs::to_bytes(&blob_id))
+}
+
+fun blob_id_b64_to_u256(encoded: String): u256 {
+    bcs::peel_u256(&mut bcs::new(base64::decode(encoded)))
 }
 
 //=== Test Functions ===
@@ -295,6 +313,18 @@ fun test_blob_id_u256_to_b64() {
         26318712447309950621133794408605739963587829295802287350894110878892617743117;
     let encoded = base64::encode(bcs::to_bytes(&blob_id));
     assert!(encoded == b"DbuJ7GRmwjoqo1LDp2qk/H/aI1ycOi2lH3Ka4ATdLzo=".to_string());
+}
+
+#[test]
+fun test_blob_id_b64_to_u256() {
+    use codec::base64;
+    use sui::bcs;
+    let encoded = b"DbuJ7GRmwjoqo1LDp2qk/H/aI1ycOi2lH3Ka4ATdLzo=".to_string();
+    let decoded = base64::decode(encoded);
+    let blob_id: u256 = bcs::peel_u256(&mut bcs::new(decoded));
+    assert!(
+        blob_id == 26318712447309950621133794408605739963587829295802287350894110878892617743117,
+    );
 }
 
 #[test]
@@ -312,17 +342,17 @@ fun test_calculate_provenance_hash() {
         b"screen".to_string(),
         b"skin".to_string(),
     ];
-    let attribute_values: vector<Attribute> = vector[
-        dos_attribute::attribute::new(b"aura".to_string(), b"none".to_string()),
-        dos_attribute::attribute::new(b"background".to_string(), b"green".to_string()),
-        dos_attribute::attribute::new(b"clothing".to_string(), b"none".to_string()),
-        dos_attribute::attribute::new(b"decal".to_string(), b"none".to_string()),
-        dos_attribute::attribute::new(b"headwear".to_string(), b"classic-antenna".to_string()),
-        dos_attribute::attribute::new(b"highlight".to_string(), b"green".to_string()),
-        dos_attribute::attribute::new(b"internals".to_string(), b"gray".to_string()),
-        dos_attribute::attribute::new(b"mask".to_string(), b"hyottoko".to_string()),
-        dos_attribute::attribute::new(b"screen".to_string(), b"tamashi-eyes".to_string()),
-        dos_attribute::attribute::new(b"skin".to_string(), b"silver".to_string()),
+    let attribute_values: vector<String> = vector[
+        b"none".to_string(),
+        b"green".to_string(),
+        b"none".to_string(),
+        b"none".to_string(),
+        b"classic-antenna".to_string(),
+        b"green".to_string(),
+        b"gray".to_string(),
+        b"hyottoko".to_string(),
+        b"tamashi-eyes".to_string(),
+        b"silver".to_string(),
     ];
     let image_uri = b"MvcX8hU5esyvO1M8NRCrleSQjS9YaH57YBedKIUpYn8".to_string();
     let provenance_hash = calculate_provenance_hash(

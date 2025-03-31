@@ -6,11 +6,8 @@ authors = ["Cascade Foundation (dos@cascade.foundation)"]
 
 [dependencies]
 Codec = { git = "https://github.com/studio-mirai/potatoes-app.git", subdir = "packages/codec", rev = "main" }
-DosAttribute = { git = "https://github.com/CascadeFoundation/dos_attribute.git", rev = "main" }
-DosBucket = { git = "https://github.com/CascadeFoundation/dos_bucket.git", rev = "main" }
 DosCollection = { git = "https://github.com/CascadeFoundation/dos_collection.git", rev = "main" }
-DosImage = { git = "https://github.com/CascadeFoundation/dos_image.git", rev = "main" }
-DosSilo = { git = "https://github.com/CascadeFoundation/dos_silo.git", rev = "main" }
+DosHashGatedBucket = { git = "https://github.com/CascadeFoundation/dos_hash_gated_bucket.git", rev = "main" }
 
 [addresses]
 dof_pfp_static = "0x0"

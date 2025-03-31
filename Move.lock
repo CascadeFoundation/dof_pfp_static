@@ -2,17 +2,14 @@
 
 [move]
 version = 3
-manifest_digest = "C3EBD689A8CDEE5FE4447BB749C9E52BB2FB59E0C84452AF6C53CAC32D7C501A"
-deps_digest = "D7FB1F2E1A893B9A0E80A392473710373DE5791D3AC8F6D898803754B2ADAE6B"
+manifest_digest = "8DE6FC5D82464CAD52FB7801B8A292EC254001305E0956C8301F48F3B2163135"
+deps_digest = "04732BFEF428F74DE262001DC455D76B909EBC394B034A9A15CC095E4BDD9CEF"
 dependencies = [
   { id = "Bridge", name = "Bridge" },
   { id = "Codec", name = "Codec" },
   { id = "DeepBook", name = "DeepBook" },
-  { id = "DosAttribute", name = "DosAttribute" },
-  { id = "DosBucket", name = "DosBucket" },
   { id = "DosCollection", name = "DosCollection" },
-  { id = "DosImage", name = "DosImage" },
-  { id = "DosSilo", name = "DosSilo" },
+  { id = "DosHashGatedBucket", name = "DosHashGatedBucket" },
   { id = "MoveStdlib", name = "MoveStdlib" },
   { id = "Sui", name = "Sui" },
   { id = "SuiSystem", name = "SuiSystem" },
@@ -50,46 +47,28 @@ dependencies = [
 ]
 
 [[move.package]]
-id = "DosAttribute"
-source = { git = "https://github.com/CascadeFoundation/dos_attribute.git", rev = "main", subdir = "" }
-
-dependencies = [
-  { id = "Sui", name = "Sui" },
-]
-
-[[move.package]]
-id = "DosBucket"
-source = { git = "https://github.com/CascadeFoundation/dos_bucket.git", rev = "main", subdir = "" }
-
-dependencies = [
-  { id = "Sui", name = "Sui" },
-  { id = "Walrus", name = "Walrus" },
-]
-
-[[move.package]]
 id = "DosCollection"
 source = { git = "https://github.com/CascadeFoundation/dos_collection.git", rev = "main", subdir = "" }
 
 dependencies = [
-  { id = "DosBucket", name = "DosBucket" },
+  { id = "Bridge", name = "Bridge" },
+  { id = "DeepBook", name = "DeepBook" },
+  { id = "MoveStdlib", name = "MoveStdlib" },
   { id = "Sui", name = "Sui" },
+  { id = "SuiSystem", name = "SuiSystem" },
 ]
 
 [[move.package]]
-id = "DosImage"
-source = { git = "https://github.com/CascadeFoundation/dos_image.git", rev = "main", subdir = "" }
+id = "DosHashGatedBucket"
+source = { git = "https://github.com/CascadeFoundation/dos_hash_gated_bucket.git", rev = "main", subdir = "" }
 
 dependencies = [
-  { id = "DosBucket", name = "DosBucket" },
+  { id = "Bridge", name = "Bridge" },
+  { id = "DeepBook", name = "DeepBook" },
+  { id = "MoveStdlib", name = "MoveStdlib" },
   { id = "Sui", name = "Sui" },
-]
-
-[[move.package]]
-id = "DosSilo"
-source = { git = "https://github.com/CascadeFoundation/dos_silo.git", rev = "main", subdir = "" }
-
-dependencies = [
-  { id = "Sui", name = "Sui" },
+  { id = "SuiSystem", name = "SuiSystem" },
+  { id = "Walrus", name = "Walrus" },
 ]
 
 [[move.package]]
@@ -115,29 +94,19 @@ dependencies = [
 
 [[move.package]]
 id = "WAL"
-source = { git = "https://github.com/MystenLabs/walrus-docs.git", rev = "main", subdir = "contracts/wal" }
+source = { git = "https://github.com/MystenLabs/walrus.git", rev = "main", subdir = "contracts/wal" }
 
 dependencies = [
   { id = "Sui", name = "Sui" },
-]
-
-[[move.package]]
-id = "WAL_exchange"
-source = { git = "https://github.com/MystenLabs/walrus-docs.git", rev = "main", subdir = "contracts/wal_exchange" }
-
-dependencies = [
-  { id = "Sui", name = "Sui" },
-  { id = "WAL", name = "WAL" },
 ]
 
 [[move.package]]
 id = "Walrus"
-source = { git = "https://github.com/MystenLabs/walrus-docs.git", rev = "main", subdir = "contracts/walrus" }
+source = { git = "https://github.com/MystenLabs/walrus.git", rev = "main", subdir = "contracts/walrus" }
 
 dependencies = [
   { id = "Sui", name = "Sui" },
   { id = "WAL", name = "WAL" },
-  { id = "WAL_exchange", name = "WAL_exchange" },
 ]
 
 [move.toolchain-version]
