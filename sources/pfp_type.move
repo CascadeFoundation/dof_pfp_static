@@ -57,6 +57,8 @@ public struct PfpRevealedEvent has copy, drop {
 
 //=== Constants ===
 
+const FRAMEWORK_NAME: vector<u8> = b"CASCADE_PFP_STATIC_V1";
+
 const COLLECTION_NAME: vector<u8> = b"<COLLECTION_NAME>";
 const COLLECTION_DESCRIPTION: vector<u8> = b"<COLLECTION_DESCRIPTION>";
 const COLLECTION_EXTERNAL_URL: vector<u8> = b"<COLLECTION_EXTERNAL_URL>";
@@ -85,7 +87,7 @@ fun init(otw: PFP_TYPE, ctx: &mut TxContext) {
     display.add(b"image_uri".to_string(), b"{image_uri}".to_string());
     display.add(b"attributes".to_string(), b"{attributes}".to_string());
 
-    let (collection, collection_admin_cap) = collection::new<PfpType>(
+    let (mut collection, collection_admin_cap) = collection::new<PfpType>(
         &publisher,
         COLLECTION_NAME.to_string(),
         @creator,
@@ -94,6 +96,13 @@ fun init(otw: PFP_TYPE, ctx: &mut TxContext) {
         COLLECTION_IMAGE_URI.to_string(),
         COLLECTION_TOTAL_SUPPLY,
         ctx,
+    );
+
+    // Add a framework hint to the collection.
+    collection.add_metadata(
+        &collection_admin_cap,
+        b"FRAMEWORK",
+        FRAMEWORK_NAME,
     );
 
     let create_pfp_cap = CreatePfpCap {
