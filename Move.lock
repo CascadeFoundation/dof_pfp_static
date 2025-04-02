@@ -2,15 +2,13 @@
 
 [move]
 version = 3
-manifest_digest = "42BFC07C0BA4B13E760C6A25A8D6BBEE2C5ADCE33F297218DB0A606F558A745E"
-deps_digest = "CB99E3BEE139471F3765AE330F855F3B376156AA54F37DEDE11BBE5BB0D3BB74"
+manifest_digest = "BA2C7FF268766BE710731D3057C515A192A279E52682F8E50EFF519D1B7D2CBD"
+deps_digest = "04732BFEF428F74DE262001DC455D76B909EBC394B034A9A15CC095E4BDD9CEF"
 dependencies = [
   { id = "BlobUtils", name = "BlobUtils" },
   { id = "Bridge", name = "Bridge" },
   { id = "DeepBook", name = "DeepBook" },
   { id = "DosCollection", name = "DosCollection" },
-  { id = "DosHashGatedBucket", name = "DosHashGatedBucket" },
-  { id = "DosRegistry", name = "DosRegistry" },
   { id = "DosStaticPfp", name = "DosStaticPfp" },
   { id = "MoveStdlib", name = "MoveStdlib" },
   { id = "Sui", name = "Sui" },
@@ -71,27 +69,7 @@ dependencies = [
   { id = "MoveStdlib", name = "MoveStdlib" },
   { id = "Sui", name = "Sui" },
   { id = "SuiSystem", name = "SuiSystem" },
-]
-
-[[move.package]]
-id = "DosHashGatedBucket"
-source = { git = "https://github.com/CascadeFoundation/dos_hash_gated_bucket.git", rev = "main", subdir = "" }
-
-dependencies = [
-  { id = "Bridge", name = "Bridge" },
-  { id = "DeepBook", name = "DeepBook" },
-  { id = "MoveStdlib", name = "MoveStdlib" },
-  { id = "Sui", name = "Sui" },
-  { id = "SuiSystem", name = "SuiSystem" },
   { id = "Walrus", name = "Walrus" },
-]
-
-[[move.package]]
-id = "DosRegistry"
-source = { git = "https://github.com/CascadeFoundation/dos_registry.git", rev = "main", subdir = "" }
-
-dependencies = [
-  { id = "Sui", name = "Sui" },
 ]
 
 [[move.package]]

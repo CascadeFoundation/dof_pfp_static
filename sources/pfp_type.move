@@ -1,12 +1,9 @@
 module dof_pfp_static::pfp_type;
 
 use blob_utils::blob_utils::blob_id_b64_to_u256;
-use dos_collection::collection::{Self, Collection};
-use dos_hash_gated_bucket::hash_gated_bucket::{Self, HashGatedBucket};
-use dos_registry::registry::{Self, Registry, RegistryAdminCap};
+use dos_collection::collection::{Self, Collection, CollectionAdminCap};
 use dos_static_pfp::static_pfp::{Self, StaticPfp};
 use std::string::String;
-use std::type_name::{Self, TypeName};
 use sui::display;
 use sui::package;
 use sui::transfer::Receiving;
@@ -40,12 +37,29 @@ const COLLECTION_EXTERNAL_URL: vector<u8> = b"<COLLECTION_EXTERNAL_URL>";
 const COLLECTION_IMAGE_URI: vector<u8> = b"<COLLECTION_IMAGE_URI>";
 const COLLECTION_TOTAL_SUPPLY: u64 = 0;
 
-const HASH_GATED_BUCKET_EXTENSION_EPOCHS: u32 = 2;
-const HASH_GATED_BUCKET_EXTENSION_UNLOCK_WINDOW: u32 = 2;
+//=== Errors ===
+
+const EInvalidCollectionAdminCap: u64 = 0;
 
 //=== Init Function ===
 
+#[allow(lint(freeze_wrapped))]
 fun init(otw: PFP_TYPE, ctx: &mut TxContext) {
+    // Create a new Collection<PfpType>. This requires a reference to the OTW
+    // to help ensure that another Collection<PfpType> cannot be created after this contract
+    // has been deployed. Technically, you could create multiple Collection<PfpType> instances
+    // within this init() function, but why in the world would you want to do that?
+    let (collection, collection_admin_cap) = collection::new<PfpType, PFP_TYPE>(
+        &otw,
+        COLLECTION_NAME.to_string(),
+        @creator,
+        COLLECTION_DESCRIPTION.to_string(),
+        COLLECTION_EXTERNAL_URL.to_string(),
+        COLLECTION_IMAGE_URI.to_string(),
+        COLLECTION_TOTAL_SUPPLY,
+        ctx,
+    );
+
     let publisher = package::claim(otw, ctx);
 
     let mut display = display::new<PfpType>(&publisher, ctx);
@@ -57,79 +71,89 @@ fun init(otw: PFP_TYPE, ctx: &mut TxContext) {
     display.add(b"image_uri".to_string(), b"{pfp.image_uri}".to_string());
     display.add(b"attributes".to_string(), b"{pfp.attributes}".to_string());
 
-    let (mut collection, collection_admin_cap) = collection::new<PfpType>(
-        &publisher,
-        COLLECTION_NAME.to_string(),
-        @creator,
-        COLLECTION_DESCRIPTION.to_string(),
-        COLLECTION_EXTERNAL_URL.to_string(),
-        COLLECTION_IMAGE_URI.to_string(),
-        COLLECTION_TOTAL_SUPPLY,
-        ctx,
-    );
-
-    let (hash_gated_bucket, hash_gated_bucket_admin_cap) = hash_gated_bucket::new(
-        HASH_GATED_BUCKET_EXTENSION_EPOCHS,
-        HASH_GATED_BUCKET_EXTENSION_UNLOCK_WINDOW,
-        ctx,
-    );
-
-    let (registry, registry_admin_cap) = registry::new<PfpType, u64>(
-        registry::new_capped_kind(COLLECTION_TOTAL_SUPPLY),
-        ctx,
-    );
-
-    collection.add_metadata<PfpType, TypeName, ID>(
-        &collection_admin_cap,
-        type_name::get<HashGatedBucket>(),
-        object::id(&hash_gated_bucket),
-    );
-
-    collection.add_metadata<PfpType, TypeName, ID>(
-        &collection_admin_cap,
-        type_name::get<Registry<PfpType, u64>>(),
-        object::id(&registry),
-    );
-
     transfer::public_transfer(display, ctx.sender());
-    transfer::public_transfer(hash_gated_bucket_admin_cap, ctx.sender());
     transfer::public_transfer(publisher, ctx.sender());
-    transfer::public_transfer(registry_admin_cap, ctx.sender());
 
-    transfer::public_share_object(hash_gated_bucket);
-    transfer::public_share_object(registry);
-
-    transfer::public_freeze_object(collection);
+    transfer::public_share_object(collection);
 
     collection_admin_cap.destroy();
 }
 
 //=== Public Function ===
 
+// Create a new PFP.
 public fun new(
+    cap: &CollectionAdminCap<PfpType>,
     name: String,
     description: String,
     external_url: String,
     provenance_hash: String,
-    collection: &Collection<PfpType>,
-    registry: &mut Registry<PfpType, u64>,
-    registry_admin_cap: &RegistryAdminCap<PfpType>,
+    collection: &mut Collection<PfpType>,
     ctx: &mut TxContext,
 ): PfpType {
+    collection.assert_state_initializing();
+
     let pfp_type = PfpType {
         id: object::new(ctx),
         collection_id: object::id(collection),
         pfp: static_pfp::new(
             name,
-            registry.size() + 1,
+            collection.current_supply() + 1,
+            description,
+            external_url,
+            provenance_hash,
+        ),
+    };
+    collection.register_item(
+        cap,
+        pfp_type.pfp.number(),
+        &pfp_type,
+    );
+
+    pfp_type
+}
+
+// Create a new PFP and reveal it immediately.
+// This function is useful for situations where a PFP is not held in a shared object that
+// can be accessed by the creator and buyer before the reveal.
+public fun new_with_reveal(
+    cap: &CollectionAdminCap<PfpType>,
+    name: String,
+    description: String,
+    external_url: String,
+    provenance_hash: String,
+    attribute_keys: vector<String>,
+    attribute_values: vector<String>,
+    image_uri: String,
+    collection: &mut Collection<PfpType>,
+    ctx: &mut TxContext,
+): PfpType {
+    collection.assert_state_initializing();
+
+    let mut pfp_type = PfpType {
+        id: object::new(ctx),
+        collection_id: object::id(collection),
+        pfp: static_pfp::new(
+            name,
+            collection.current_supply() + 1,
             description,
             external_url,
             provenance_hash,
         ),
     };
 
-    registry.add(
-        registry_admin_cap,
+    // Call reveal() directly.
+    reveal(
+        &mut pfp_type,
+        cap,
+        attribute_keys,
+        attribute_values,
+        image_uri,
+        collection,
+    );
+
+    collection.register_item(
+        cap,
         pfp_type.pfp.number(),
         &pfp_type,
     );
@@ -141,16 +165,18 @@ public fun receive<T: key + store>(self: &mut PfpType, obj_to_receive: Receiving
     transfer::public_receive(&mut self.id, obj_to_receive)
 }
 
+// Reveal a PFP with attributes keys, attribute values, and an image URI.
 public fun reveal(
     self: &mut PfpType,
+    cap: &CollectionAdminCap<PfpType>,
     attribute_keys: vector<String>,
     attribute_values: vector<String>,
     image_uri: String,
-    bucket: &HashGatedBucket,
+    collection: &mut Collection<PfpType>,
 ) {
-    // Assert a Walrus blob associated with the provided image URI exists.
-    bucket.assert_contains_blob(blob_id_b64_to_u256(self.pfp.image_uri()));
+    assert!(cap.collection_id() == self.collection_id, EInvalidCollectionAdminCap);
 
+    collection.assert_blob_reserved(blob_id_b64_to_u256(self.pfp.image_uri()));
     self.pfp.reveal(attribute_keys, attribute_values, image_uri);
 }
 
